@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MarkItDown — documentos a Markdown</title>
+<style>
+  :root {
+    color-scheme: light;
+    --paper:      #f6f7f8;
+    --panel:      #fdfdfd;
+    --ink:        #1b1e24;
+    --ink-soft:   #5b6270;
+    --ink-faint:  #949cab;
+    --rule:       #dde1e7;
+    --accent:     #2b4c8c;
+    --accent-dim: #e8edf6;
+    --alert:      #a63d2c;
+    --alert-dim:  #f7ebe8;
+
+    --mono: ui-monospace, "Cascadia Mono", "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+    --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+    --step-0: 14px;
+    --step-1: 15px;
+    --step-2: 19px;
+    --micro:  11px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --paper:      #101216;
+      --panel:      #171a1f;
+      --ink:        #e4e7ec;
+      --ink-soft:   #99a1af;
+      --ink-faint:  #6b7280;
+      --rule:       #262b33;
+      --accent:     #8ba9e0;
+      --accent-dim: #1b2432;
+      --alert:      #e08573;
+      --alert-dim:  #2a1c19;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --paper:      #101216;
+    --panel:      #171a1f;
+    --ink:        #e4e7ec;
+    --ink-soft:   #99a1af;
+    --ink-faint:  #6b7280;
+    --rule:       #262b33;
+    --accent:     #8ba9e0;
+    --accent-dim: #1b2432;
+    --alert:      #e08573;
+    --alert-dim:  #2a1c19;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --paper:      #f6f7f8;
+    --panel:      #fdfdfd;
+    --ink:        #1b1e24;
+    --ink-soft:   #5b6270;
+    --ink-faint:  #949cab;
+    --rule:       #dde1e7;
+    --accent:     #2b4c8c;
+    --accent-dim: #e8edf6;
+    --alert:      #a63d2c;
+    --alert-dim:  #f7ebe8;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: var(--step-1);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* ---------- barra superior ---------- */
+
+  .topbar {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--panel);
+  }
+  .wordmark {
+    font-family: var(--mono);
+    font-size: var(--step-2);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .wordmark i {
+    color: var(--accent);
+    font-style: normal;
+  }
+  .tagline {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: var(--micro);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-right: auto;
+  }
+
+  /* ---------- controles ---------- */
+
+  .btn {
+    font-family: var(--mono);
+    font-size: var(--micro);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: border-color .12s, color .12s, background .12s;
+  }
+  .btn:hover:not(:disabled) {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .btn:disabled {
+    color: var(--ink-faint);
+    opacity: .45;
+    cursor: default;
+  }
+  .btn--primary {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .btn--danger:hover:not(:disabled) {
+    color: var(--alert);
+    border-color: var(--alert);
+    background: var(--alert-dim);
+  }
+
+  /* ---------- barra de estado ---------- */
+
+  .statusbar {
+    display: none;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--accent-dim);
+    font-size: var(--step-0);
+    color: var(--ink-soft);
+  }
+  .statusbar.is-shown { display: flex; }
+  .statusbar.is-error {
+    background: var(--alert-dim);
+    color: var(--alert);
+  }
+  .statusbar::before {
+    content: "→";
+    font-family: var(--mono);
+    color: var(--accent);
+    flex: none;
+  }
+  .statusbar.is-error::before { content: "×"; color: var(--alert); }
+
+  /* ---------- banco de trabajo ---------- */
+
+  .workbench {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 6fr);
+    gap: 1px;
+    background: var(--rule);
+    min-height: 0;
+  }
+  @media (max-width: 820px) {
+    .workbench { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .panel {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: 0;
+    min-width: 0;
+    background: var(--panel);
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--rule);
+    min-height: 46px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: var(--micro);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-right: auto;
+  }
+  .panel-body { min-height: 0; position: relative; overflow: hidden; }
+  .panel-foot {
+    padding: 8px 16px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: var(--micro);
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    min-height: 33px;
+  }
+
+  /* ---------- zona de origen ---------- */
+
+  .dropzone {
+    height: 100%;
+    min-height: 260px;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 14px;
+    padding: 28px;
+    text-align: center;
+    cursor: pointer;
+    border: 1px dashed transparent;
+    transition: background .12s, border-color .12s;
+  }
+  .dropzone:hover, .dropzone.is-over {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+  }
+  .glyphs {
+    font-family: var(--mono);
+    font-size: 26px;
+    letter-spacing: 0.22em;
+    color: var(--ink-faint);
+    user-select: none;
+  }
+  .dropzone.is-over .glyphs { color: var(--accent); }
+  .dropzone h2 {
+    margin: 0;
+    font-size: var(--step-1);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  .dropzone p {
+    margin: 0;
+    font-size: var(--step-0);
+    color: var(--ink-soft);
+    max-width: 34ch;
+  }
+  input[type="file"] { display: none; }
+
+  /* ---------- ficha de archivo ---------- */
+
+  .filecard {
+    display: none;
+    height: 100%;
+    align-content: start;
+    gap: 6px;
+    padding: 22px 18px;
+  }
+  .filecard.is-shown { display: grid; }
+  .filecard dt {
+    font-family: var(--mono);
+    font-size: var(--micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-top: 12px;
+  }
+  .filecard dd {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: var(--step-0);
+    word-break: break-all;
+    font-variant-numeric: tabular-nums;
+  }
+  .filecard dd.name { color: var(--accent); }
+
+  /* ---------- salida ---------- */
+
+  .output {
+    height: 100%;
+    overflow: auto;
+    margin: 0;
+    padding: 18px;
+    font-family: var(--mono);
+    font-size: var(--step-0);
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-break: break-word;
+    tab-size: 2;
+  }
+  .empty {
+    height: 100%;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 8px;
+    padding: 28px;
+    text-align: center;
+    color: var(--ink-faint);
+  }
+  .empty.is-hidden { display: none; }
+  .empty p { margin: 0; font-size: var(--step-0); max-width: 40ch; }
+  .empty .glyphs { font-size: 20px; }
+
+  .progress {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2px;
+    background: var(--rule);
+    overflow: hidden;
+    display: none;
+  }
+  .progress.is-running { display: block; }
+  .progress::after {
+    content: "";
+    display: block;
+    width: 34%;
+    height: 100%;
+    background: var(--accent);
+    animation: slide 1.05s ease-in-out infinite;
+  }
+  @keyframes slide {
+    0%   { transform: translateX(-105%); }
+    100% { transform: translateX(400%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .progress::after { animation: none; width: 100%; opacity: .5; }
+    .btn { transition: none; }
+  }
+
+  .formats {
+    color: var(--ink-faint);
+    word-spacing: .1em;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="wordmark"><i>#</i>markitdown</span>
+  <p class="tagline">Documentos a Markdown</p>
+  <button class="btn" id="btn-theme" type="button" aria-label="Cambiar tema">Tema</button>
+</header>
+
+<div class="statusbar" id="statusbar" role="status" aria-live="polite"></div>
+
+<main class="workbench">
+
+  <section class="panel">
+    <div class="panel-head">
+      <span class="eyebrow">Origen</span>
+      <button class="btn" id="btn-again" type="button" disabled>De nuevo</button>
+      <button class="btn btn--danger" id="btn-remove" type="button" disabled>Quitar</button>
+    </div>
+    <div class="panel-body">
+      <div class="dropzone" id="drop" role="button" tabindex="0" aria-label="Elegir o soltar un archivo">
+        <span class="glyphs" aria-hidden="true"># ** | -</span>
+        <h2>Suelta un archivo aquí</h2>
+        <p>O pulsa para elegirlo. Se convierte en cuanto lo recibe.</p>
+      </div>
+      <dl class="filecard" id="filecard">
+        <dt>Archivo</dt>
+        <dd class="name" id="f-name"></dd>
+        <dt>Tamaño</dt>
+        <dd id="f-size"></dd>
+        <dt>Tipo</dt>
+        <dd id="f-type"></dd>
+      </dl>
+    </div>
+    <p class="panel-foot formats" id="foot-src">PDF · DOCX · XLSX · PPTX · HTML · CSV · EPUB · imágenes · audio</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <span class="eyebrow">Markdown</span>
+      <button class="btn btn--primary" id="btn-copy" type="button" disabled>Copiar</button>
+      <button class="btn" id="btn-download" type="button" disabled>Descargar .md</button>
+      <button class="btn btn--danger" id="btn-clear" type="button" disabled>Limpiar</button>
+    </div>
+    <div class="panel-body">
+      <div class="progress" id="progress"></div>
+      <div class="empty" id="empty">
+        <span class="glyphs" aria-hidden="true">&gt;</span>
+        <p>El resultado aparecerá aquí.</p>
+      </div>
+      <pre class="output" id="output" hidden></pre>
+    </div>
+    <p class="panel-foot" id="foot-out">Sin resultado</p>
+  </section>
+
+</main>
+
+<input type="file" id="picker">
+
+<script>
+(() => {
+  "use strict";
+
+  const el = id => document.getElementById(id);
+  const drop = el("drop"), picker = el("picker"), filecard = el("filecard");
+  const output = el("output"), empty = el("empty"), progress = el("progress");
+  const statusbar = el("statusbar"), footOut = el("foot-out");
+  const btnAgain = el("btn-again"), btnRemove = el("btn-remove");
+  const btnCopy = el("btn-copy"), btnDownload = el("btn-download"), btnClear = el("btn-clear");
+
+  let currentFile = null;
+  let markdown = "";
+  let busy = false;
+
+  /* ---------- tema ---------- */
+
+  const saved = localStorage.getItem("markitdown-theme");
+  if (saved) document.documentElement.dataset.theme = saved;
+
+  el("btn-theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme
+      ? root.dataset.theme === "dark"
+      : matchMedia("(prefers-color-scheme: dark)").matches;
+    const next = dark ? "light" : "dark";
+    root.dataset.theme = next;
+    localStorage.setItem("markitdown-theme", next);
+  });
+
+  /* ---------- utilidades ---------- */
+
+  function humanSize(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " kB";
+    return (bytes / 1048576).toFixed(1) + " MB";
+  }
+
+  function setStatus(text, kind) {
+    statusbar.textContent = text || "";
+    statusbar.classList.toggle("is-shown", Boolean(text));
+    statusbar.classList.toggle("is-error", kind === "error");
+  }
+
+  function syncButtons() {
+    const hasFile = Boolean(currentFile);
+    const hasText = markdown.length > 0;
+    btnAgain.disabled = !hasFile || busy;
+    btnRemove.disabled = !hasFile || busy;
+    btnCopy.disabled = !hasText;
+    btnDownload.disabled = !hasText;
+    btnClear.disabled = !hasText;
+  }
+
+  function showResult(text) {
+    markdown = text;
+    output.textContent = text;
+    output.hidden = text.length === 0;
+    empty.classList.toggle("is-hidden", text.length > 0);
+    if (text.length > 0) {
+      const lines = text.split("\n").length;
+      const words = text.split(/\s+/).filter(Boolean).length;
+      footOut.textContent =
+        `${text.length.toLocaleString("es")} caracteres · ` +
+        `${words.toLocaleString("es")} palabras · ` +
+        `${lines.toLocaleString("es")} líneas`;
+    } else {
+      footOut.textContent = "Sin resultado";
+    }
+    syncButtons();
+  }
+
+  function describeFile(file) {
+    el("f-name").textContent = file.name;
+    el("f-size").textContent = humanSize(file.size);
+    el("f-type").textContent = file.type || "desconocido";
+    filecard.classList.add("is-shown");
+    drop.style.display = "none";
+  }
+
+  /* ---------- conversión ---------- */
+
+  async function convert(file) {
+    if (!file || busy) return;
+    currentFile = file;
+    describeFile(file);
+    busy = true;
+    syncButtons();
+    progress.classList.add("is-running");
+    setStatus(`Convirtiendo ${file.name}…`);
+
+    const body = new FormData();
+    body.append("file", file);
+
+    try {
+      const res = await fetch("/api/convert", { method: "POST", body });
+      const payload = await res.json();
+
+      if (!res.ok) {
+        showResult("");
+        setStatus(payload.detail || `El servidor respondió ${res.status}.`, "error");
+        return;
+      }
+
+      const text = (payload.markdown || "").trim();
+      if (!text) {
+        showResult("");
+        setStatus(
+          "El archivo se leyó pero no contiene texto extraíble. " +
+          "Si es un PDF escaneado, hace falta OCR y esta versión no lo incluye.",
+          "error"
+        );
+        return;
+      }
+
+      showResult(payload.markdown);
+      setStatus(`Listo: ${payload.filename}`);
+    } catch (err) {
+      showResult("");
+      setStatus(`No se pudo contactar al servidor: ${err.message}`, "error");
+    } finally {
+      busy = false;
+      progress.classList.remove("is-running");
+      syncButtons();
+    }
+  }
+
+  /* ---------- entrada de archivos ---------- */
+
+  drop.addEventListener("click", () => picker.click());
+  drop.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); picker.click(); }
+  });
+  picker.addEventListener("change", e => {
+    if (e.target.files.length) convert(e.target.files[0]);
+  });
+
+  ["dragenter", "dragover"].forEach(ev =>
+    drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("is-over"); }));
+  ["dragleave", "drop"].forEach(ev =>
+    drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("is-over"); }));
+  drop.addEventListener("drop", e => {
+    if (e.dataTransfer.files.length) convert(e.dataTransfer.files[0]);
+  });
+
+  /* ---------- acciones ---------- */
+
+  btnAgain.addEventListener("click", () => convert(currentFile));
+
+  btnRemove.addEventListener("click", () => {
+    currentFile = null;
+    picker.value = "";
+    filecard.classList.remove("is-shown");
+    drop.style.display = "";
+    showResult("");
+    setStatus("");
+  });
+
+  btnClear.addEventListener("click", () => {
+    showResult("");
+    setStatus("Resultado limpiado. El archivo sigue cargado.");
+  });
+
+  btnCopy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setStatus("Copiado al portapapeles.");
+    } catch {
+      setStatus("El navegador bloqueó el portapapeles. Selecciona el texto y copia con Ctrl+C.", "error");
+    }
+  });
+
+  btnDownload.addEventListener("click", () => {
+    const base = (currentFile?.name || "documento").replace(/\.[^.]+$/, "");
+    const url = URL.createObjectURL(new Blob([markdown], { type: "text/markdown" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${base}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setStatus(`Descargado ${base}.md`);
+  });
+
+  syncButtons();
+})();
+</script>
+
+</body>
+</html>

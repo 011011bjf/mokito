@@ -1,0 +1,10 @@
+services:
+  markitdown:
+    build: .
+    image: markitdown-service:latest
+    container_name: markitdown
+    ports:
+      - "8080:8000"
+    environment:
+      MARKITDOWN_MAX_UPLOAD_MB: "50"
+    restart: unless-stopped
